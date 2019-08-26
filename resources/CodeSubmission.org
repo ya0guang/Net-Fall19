@@ -31,7 +31,7 @@ that where the tutorial refers to *github.com*, you should use *github.iu.edu*.
 
 ** Repository Creation
 
-You should create a *PRIVATE* repository called *Net-Fall18* on IU Github. 
+You should create a *PRIVATE* repository called *Net-Fall19* on IU Github. 
 
 Make sure to set your new repositories to "Private" as shown in Figure
 [[fig:create_repo]] to prevent others from viewing your work!
