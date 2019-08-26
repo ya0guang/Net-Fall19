@@ -42,7 +42,7 @@ Make sure to set your new repositories to "Private" as shown in Figure
 #+ATTR_HTML: :width 1280px
 [[./images/create_repo.png]]
 
-*IMPORTANT*: Add the =sicenet= user to your *Net-Fall18* repository.
+*IMPORTANT*: Add the =sicenet= user to your *Net-Fall19* repository.
 
  * The Github =sicenet= user is the instructor and AI account for this class.
    You must ensure that this user is added as a collaborator to the repository
@@ -59,17 +59,17 @@ Make sure to set your new repositories to "Private" as shown in Figure
 
 The course repository should be duplicated using the steps below:
 
- * Change directories to a scratch area. Create a bare clone of the *Net-Fall18*
+ * Change directories to a scratch area. Create a bare clone of the *Net-Fall19*
    course repository using:
 
 #+begin_src text
-git clone --bare git@github.iu.edu:SICE-Networks/Net-Fall18
+git clone --bare git@github.iu.edu:SICE-Networks/Net-Fall19
 #+end_src
 
- * Enter the Net-Fall18 directory
+ * Enter the Net-Fall19 directory
 
 #+begin_src text
-cd Net-Fall18
+cd Net-Fall19
 #+end_src
 
  * Push this repo data to your repository replacing /yourreponame/ with the
@@ -84,7 +84,7 @@ git push --mirror yourreponame
 
 #+begin_src text
 cd ..
-rm -rf Net-Fall18
+rm -rf Net-Fall19
 #+end_src
 
 ** Remote Setup
@@ -94,13 +94,13 @@ your repository. This repository will be updated periodically with new lab
 material. Adding an upstream remote will allow you to keep your copy
 synchronized with updated lab material.
 
- * Clone your *Net-Fall18*
+ * Clone your *Net-Fall19*
 
- * cd into the Net-Fall18 directory. Add an upstream remote to your
+ * cd into the Net-Fall19 directory. Add an upstream remote to your
    repository. 
 
 #+begin_src text
-git remote add upstream git@github.iu.edu:SICE-Networks/Net-Fall18.git
+git remote add upstream git@github.iu.edu:SICE-Networks/Net-Fall19.git
 #+end_src
 
  * In the future, you can pull in updates to the course repository using a fetch
@@ -120,7 +120,7 @@ specific commit hash of your code repository.
  * As an example, your submitted URL should have a format similar to:
 
 #+begin_src text
-https://github.iu.edu/ezkissel/Net-Fall18/commit/1cde9d43e12b8a2e7371b33372b14a5e9a1f0d9c
+https://github.iu.edu/ezkissel/Net-Fall19/commit/1cde9d43e12b8a2e7371b33372b14a5e9a1f0d9c
 #+end_src
 
 
