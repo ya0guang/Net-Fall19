@@ -18,11 +18,13 @@
 - From wireshark's TCP section, we can see: *TCP payload (239 bytes)*. So the content(including headers) size returend to my browser is 239 bytes. But the size of html file is 128B. In http protocol, there **should** be "Content-Length" indicating the size returedn to the browser, but it seems that our website doesn't use it.
 - In TCP section in wireshark, you can see: *[TCP Segment Len: 239]*, or *TCP payload (239 bytes)* indicating the size.
 
-## How long did it take from when the HTTP GET message was sent until the HTTP OK reply was received?\
+## How long did it take from when the HTTP GET message was sent until the HTTP OK reply was received?
 - *[Time since request: 0.031207211 seconds]*
 - It takes 0.031207211 second.
 
 # Task 2
+## Screenshot
+![image](https://github.iu.edu/hc50/Net-Fall19/blob/master/00_wireshark/traceroute_ScrnSht.png)
 ## Output from traceroute
 traceroute to yahoo.com (72.30.35.9), 30 hops max, 60 byte packets
  1  xe-1-3-3.1915.cr5.bldc.net.uits.iu.edu (156.56.158.2)  5.132 ms  5.063 ms  5.075 ms
