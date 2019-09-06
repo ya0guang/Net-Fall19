@@ -7,6 +7,10 @@
 - IP of the server: Destination: 128.119.245.12
 
 ## What is the status code and phrase returned from the server to your browser?
+### From wireshark:
+- Status Code: 200
+- Status phrase: OK
+### But from the browser's "developer's tool" view
 - Status Code: 304
 - Status phrase: Not Modified
 
