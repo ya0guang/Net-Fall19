@@ -8,8 +8,8 @@
 
 ## What is the status code and phrase returned from the server to your browser?
 ### From wireshark:
-- Status Code: 200
-- Status phrase: OK
+- Status Code: 200(sometimes) and 304(sometimes)
+- Status phrase: OK/Not Modified
 ### But from the browser's "developer's tool" view
 - Status Code: 304
 - Status phrase: Not Modified
