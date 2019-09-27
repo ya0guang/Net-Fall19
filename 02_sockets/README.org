@@ -22,7 +22,7 @@ program, the accompanying server program, and the application protocol that will
 allow both ends to communicate in some meaningful way.
 
 We will be using the /netster/ skeleton code in the =src/= directory within the
-*Net-Fall18* repository.  The intent of /netster/ is to provide a framework for
+*Net-Fall19* repository.  The intent of /netster/ is to provide a framework for
 exploring network programming techniques over this and the next few assignments.
 Skeleton code exists for both C and Python3.  C++ may be used if desired and you
 are comfortable updating the build environment.  The skeleton code already
