@@ -1,0 +1,90 @@
+#+TITLE: Assignment 02: Fun with Sockets!
+#+SUBTITLE: Fall 2019
+#+OPTIONS: toc:nil num:nil html-postamble:nil author:nil date:nil
+#+LATEX_HEADER: \usepackage{times}
+#+LATEX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \lstset{basicstyle=\small\ttfamily,columns=flexible,breaklines=true}
+#+LATEX_HEADER: \usepackage[a4paper,margin=1.0in]{geometry}
+#+LATEX_HEADER: \setlength{\parindent}{0cm}
+#+LATEX_HEADER: \usepackage{parskip}
+#+LATEX_HEADER: \usepackage{enumitem}
+#+LATEX_HEADER: \setitemize{noitemsep,topsep=2pt,parsep=2pt,partopsep=2pt}
+#+LATEX_HEADER: \usepackage{titling}
+#+LATEX_HEADER: \setlength{\droptitle}{-1in}
+#+LATEX_HEADER: \posttitle{\par\end{center}\vspace{-.5in}}
+
+* Instructions
+The goal of this assignment is to develop a client/server application using the
+sockets support available in your chosen programming language.  The previous
+assignment had you establish a TCP connection to an existing server (SMTP mail
+server) and read from the connected socket.  You will now develop both a client
+program, the accompanying server program, and the application protocol that will
+allow both ends to communicate in some meaningful way.
+
+We will be using the /netster/ skeleton code in the =src/= directory within the
+*Net-Fall19* repository.  The intent of /netster/ is to provide a framework for
+exploring network programming techniques over this and the next few assignments.
+Skeleton code exists for both C and Python3.  C++ may be used if desired and you
+are comfortable updating the build environment.  The skeleton code already
+contains code that will allow a single executable to act as both the client and
+server, all depending on the arguments passed on the command line.  Run the
+skeleton code as a first step to become familiar with the structure.
+
+We will be adding functionality to /netster/ in a modular fashion.  This being
+Assignment 02, you will implement the tasks below in a source file named =a2=
+(followed by =.c/.h= or =.py= extension depending on your chosen language).  For
+Assignment 03, you will add functionality to =a3=, and so forth.  New
+functions/methods should be called from the main =netster.c/py= code but the
+definitions/body of those methods should be contained within the source and
+header files for each assignment.  The one exception is that additional command
+line arguments may be extended through the main =netster= source file when
+necessary.
+
+** Task 1 - TCP client/server protocol
+
+In this task, you will implement a client/server protocol over a TCP socket.
+The protocol will be text-based and very simple to start.  Application messages
+exchanged between client and server will be single word commands, and the client
+and server will respond to these message exchanges in some well-defined manner.
+
+*Protocol Details*:
+
+ * If your server receives the message "hello", it should respond to the client
+   with the message "world" and wait for more messages.
+
+ * Any other messages should be echoed (repeated) back to the client.
+
+ * If your server receives the message "goodbye" it should respond with the
+   message "farewell", terminate the existing connection, and then wait for a
+   new connection from the next client.
+
+ * If your server receives the message "exit", the server process should respond
+   with the message "ok" and then terminate.
+
+ * All messages will be terminated by a LF (line feed, or =\n=) character.
+
+ * Max message size should be limited to 255 bytes, not including the
+   termination character.
+
+** Task 2 - UDP client/server protocol
+
+Implement the same protocol as defined in Task 1 but this time use UDP instead
+of TCP.  There should be two distinct code paths in your =a2= file(s) depending
+on if /netster/ was called with the =-u= flag or not.  Also think about what the
+"goodbye" and "farewell" exchange means in the UDP case for this protocol.
+
+** Task 3 (538/599 sections) - Multithreaded server
+
+For the graduate student sections, your implementations will be taken one step
+further.  Extend the above TCP and UDP implementations in /netster/ so that the
+connection handling is multithreaded, meaning that the server can service more
+than one client request at a time.  You should be able to test multiple client
+connections to a single server simultaneously.
+
+** TO SUBMIT
+
+ * Well-documented and formatted code in =a2= files for Tasks 1 and 2 committed
+   and pushed your Net-Fall18 private repositories.  Follow the code submission
+   guidelines.
+
+ * If graduate section, Task 3 extensions to Tasks 1 and 2.
