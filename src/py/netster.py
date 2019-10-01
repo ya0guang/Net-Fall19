@@ -17,18 +17,18 @@ DEFAULT_PORT = 12345
 # NOTE: The arguments should be extended with a custom dict or **kwargs
 
 
-def run_server(port):
-    log.info("Hello, I am a server...goodbye!")
-    serverStart(port=port)
+def run_server(port, udp):
+    log.info("Hello, I am a server...")
+    serverStart(port=port, udp=udp)
 
 # If we are a client, launch the appropriate methods to handle client
 # functionality based on the input arguments
 # NOTE: The arguments should be extended with a custom dict or **kwargs
 
 
-def run_client(host, port):
-    log.info("Hello, I am a client...goodbye!")
-    clientStart(host, port)
+def run_client(host, port, udp):
+    log.info("Hello, I am a client...")
+    clientStart(host=host, port=port, udp=udp)
 
 
 def main():
@@ -71,11 +71,11 @@ def main():
     if args.host:
         log.basicConfig(format='%(levelname)s:client: %(message)s',
                         level=level)
-        run_client(args.host, args.port)
+        run_client(args.host, args.port,args.udp)
     else:
         log.basicConfig(format='%(levelname)s:server: %(message)s',
                         level=level)
-        run_server(args.port)
+        run_server(args.port, args.udp)
 
     if args.file:
         f.close()
