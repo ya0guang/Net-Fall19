@@ -60,6 +60,8 @@ def clientStart(host: str, port: str = '12345', udp: bool = False):
             log.info("Server says: %s", response)
 
         if msg.strip() is "exit" or "goodbye":
+            if not udp:
+                client.close()
             sys.exit()
 
 def serverStart(port: str = '12345', udp: bool = False):
