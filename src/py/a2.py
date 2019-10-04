@@ -34,10 +34,9 @@ def clientStart(host: str, port: str = '12345', udp: bool = False):
             print("Could not connect server :", host,
                 "port:", port, ", because", format(e))
             exit(1)
-        finally:
-            log.info("Connect to server %s success!", host)
+        
+        log.info("Connect to server %s success!", host)
     
-
     while True:
         # get input from the terminal
         msg = input(">").strip() + TERMINATOR
@@ -56,13 +55,15 @@ def clientStart(host: str, port: str = '12345', udp: bool = False):
         finally:
             # if TCP socket received zero-length response
             if len(response) == 0:
-                sys.exit()
+                if not udp:
+                    client.close()
+                os._exit(0)
             log.info("Server says: %s", response)
 
-        if msg.strip() is "exit" or "goodbye":
+        if (msg.strip() == "exit") or (msg.strip() == "goodbye"):
             if not udp:
                 client.close()
-            sys.exit()
+            os._exit(0)
 
 def serverStart(port: str = '12345', udp: bool = False):
 
@@ -80,6 +81,7 @@ def serverStart(port: str = '12345', udp: bool = False):
         print("Could not bind port: ", port, ", because", format(e))
         exit(1)
 
+    server.settimeout(1)
     log.info("Service is on! hostname: %s, port: %s", host, port)
     log.info("Service is using UDP: %r", udp)
 
@@ -91,7 +93,11 @@ def serverStart(port: str = '12345', udp: bool = False):
         # in UDP case, the server will handle message receiving and put it to the queue corresponding to
         # the client, or create a new client thread if there is no corresponding client
         if udp:
-            (msg, clientAddr) = server.recvfrom(BUFFER)
+            try:
+                msg = ""
+                (msg, clientAddr) = server.recvfrom(BUFFER)
+            except socket.timeout:
+                pass
             if len(msg) > 0:
                 if clientAddr in clientThreads:
                     clientThreads[clientAddr].inQueue.put(msg)
@@ -102,7 +108,6 @@ def serverStart(port: str = '12345', udp: bool = False):
         # new thread after accepting a new connection. the thread will handle everything
         else:
             try:
-                server.settimeout(1)
                 (clientSocket, clientAddr) = server.accept()
                 clientThreads[clientAddr] = TCPThread(clientAddr, server, clientSocket)
                 clientThreads[clientAddr].start()
@@ -115,7 +120,7 @@ def serverStart(port: str = '12345', udp: bool = False):
             if clientThread.exitFlag:
                 log.info("Got an exit signal, terminating myself...")
                 server.close()
-                sys.exit()
+                os._exit(0)
             if not clientThread.is_alive():
                 clientToAbort = clientAddr
 
