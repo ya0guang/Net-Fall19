@@ -1,0 +1,258 @@
+#+TITLE: Assignment 03: Reliable UDP
+#+SUBTITLE: Fall 2018
+#+OPTIONS: toc:nil num:nil html-postamble:nil author:nil date:nil
+#+LATEX_HEADER: \usepackage{times}
+#+LATEX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \lstset{basicstyle=\small\ttfamily,columns=flexible,breaklines=true}
+#+LATEX_HEADER: \usepackage[a4paper,margin=1.0in]{geometry}
+#+LATEX_HEADER: \setlength{\parindent}{0cm}
+#+LATEX_HEADER: \usepackage{parskip}
+#+LATEX_HEADER: \usepackage{enumitem}
+#+LATEX_HEADER: \setitemize{noitemsep,topsep=2pt,parsep=2pt,partopsep=2pt}
+#+LATEX_HEADER: \usepackage{titling}
+#+LATEX_HEADER: \setlength{\droptitle}{-1in}
+#+LATEX_HEADER: \posttitle{\par\end{center}\vspace{-.5in}}
+
+* Instructions
+
+The purpose of this assignment is to extend your /netster/ code so that it
+supports reliable network communication over UDP - Reliable UDP (RUDP)!  You
+have already implemented an application protocol over TCP and UDP and you will
+now have an opportunity to test your existing code over an unreliable network.
+Once the limitations of UDP over an unreliable channel become clear you should
+feel motivated to solve the issue at hand with your very own RUDP
+implementation.
+
+This assignment requires some careful planning and most likely a few
+iterations of your design before it meets the specifications put forth
+in the tasks below.  You will have more time to complete this
+assignment, but be sure to start early and begin experimenting with
+the testbed to understand how things work.  Good luck!
+
+** Testbed
+
+You will use a 4-node testbed on which to develop, debug, and evaluate your
+reliable UDP protocol implementations.  The logical connections of this testbed
+is shown in the diagram below.
+
+#+CAPTION: The logical connectivity for the netdev testbed
+#+NAME:   fig:netdev_testbed
+#+ATTR_LATEX: :width 6in
+#+ATTR_HTML: :width 1280px
+[[./images/netdev_testbed.png]]
+
+You do have access to the router node but you will not need to use it for
+development or testing.  The router node is where the network becomes
+unreliable, and where loss and delay are introduced for certain packets.  More
+details below.
+
+** Logging into the testbed
+
+As shown in the diagram, there are four (4) nodes and you will need to =ssh=
+into 3 out of the 4 to complete the assignment.
+
+ * =netdev.open.sice.indiana.edu= - public login node
+ * =client= - "client" node (aka /targaryen/)
+ * =server= - "server" node (aka /baratheon/)
+
+The only publicly reachable node is =netdev.open.sice.indiana.edu= and this will
+be your primary login host.  Use your IU username and password to login with.
+
+Once logged into =netdev=, you may ssh to the client and server nodes.  The IP
+addresses or the =client= and =server= names may be used.
+
+It is highly recommended to setup an SSH Key to use for this cluster to avoid
+the overhead of typing your IU CAS password at every login prompt.
+
+Below is a typical example of how to ssh to =netdev= and then the =client= node.
+
+#+begin_src text
+$ ssh ezkissel@netdev.open.sice.indiana.edu -A
+Linux netdev 4.9.0-5-amd64 #1 SMP Debian 4.9.65-3+deb9u2 (2018-01-04)
+...
+Last login: Mon Sep 24 15:07:30 2018 from 149.160.230.85
+ezkissel@netdev:~$ 
+ezkissel@netdev:~$ ssh client -A
+Linux targaryen 4.9.0-5-amd64 #1 SMP Debian 4.9.65-3+deb9u2 (2018-01-04)
+...
+Last login: Mon Sep 24 15:07:34 2018 from 192.168.1.40
+ezkissel@targaryen:~$ hostname
+targaryen
+#+end_src
+
+** How to develop and test with packet loss and delay
+
+The router node in the testbed will introduce delay (i.e. latency) and loss to
+certain traversing packets.  The destination port number in your packets will
+determine which class of delay and loss you will get, see the table below.
+
+| dst port range | latency | loss |
+|----------------+---------+------|
+|      2048-2304 | 25ms    |   0% |
+|      4096-4352 | 25ms    |   1% |
+|      8192-8448 | 25ms    |  30% |
+
+A few notes:
+ * If not using a destination port in the specified ranges your
+   traffic will be sent "normally", meaning no intentional latency or
+   loss will be introduced.  You will see the best-effort delivery
+   service provided by the testbed, which should be quite good.
+
+ * All configured options for testing will introduce 25ms latency in
+   both directions, or 50ms round-trip-time (RTT).
+
+ * There are a range of ports to test with for each latency/loss
+   configuration.  These are shared systems, so someone else in the
+   class might already be using the port you want to bind to.  If you
+   get a bind error, first step is to try again using another port in
+   the range.  There are 256 available ports for each configuration so
+   collisions should remain relatively low give the class size.
+
+ * If there is some specific combination of delay, loss, or
+   re-ordering you have good reason to test with, we can discuss
+   adding another configuration on the router node.  Just ask!
+
+Here is an example of how you can visually observe the impact of 30%
+loss across the network:
+
+#+begin_src text
+server$ nc -l -u -p 8199
+<...missing lots of input from the client...>
+
+client$ nc -u server 8199
+<...type lots of input...>
+#+end_src
+
+You should of course witness the same behavior with your own /netster/
+UDP client and server.  Give it a try.
+
+** Task 1 - Extend netster to transfer file data
+
+You should extend /netster/ so that you can transfer file data from
+client to server.  In addition to infrequent "request"/"response"
+messages from the previous assignment, you will now need to send lots
+of data at once and stress the underlying network.  Reading from a
+file and transfering its contents over the network meets that
+criteria.  Having the /netster/ server save the file also lets you
+check if your RUDP design is working correctly.  Obviously, the
+received and saved file should be a bit-wise duplicate of the source
+file sent by the /netster/ client when transfered with a working RUDP
+design.
+
+The /netster/ skeleton code has been updated with an additional
+command line argument (=-f=) to specify the filename to use for either
+the client or server.  The skeleton code also opens the file
+appropriately for reading and writing depending on if /netster/ is
+launched as the client or server, respectively.
+
+With an open file handle available when the =-f= option if given, you
+will use the file I/O methods in your given programming language to
+read and write file data.  For example, =fread()= and =fwrite()= in C,
+or simply =f.read()= and =f.write()= in Python3.  It is your job to
+move file data between the file handle and the network socket using an
+intermediate buffer.  Performance is not a primary concern here, so
+copying in and out of a user space buffer is perfectly fine.
+
+** New /netster/ options for Tasks 2 and 3
+
+The netster skeleton also has a new argument (=-r=) to select RUDP
+operation, for both client and server.  When the /netster/ client and
+server programs are started using this flag, application data should
+be sent and received using your new RUDP implementations.
+
+The =-r= flag accepts a value.  If =-r 1= is passed, that means we
+should use the alternating bit protocol (Task 2).  If =-r 2= is
+passed, that means we should use the go-back-N protocol instead (Task
+3).  Your program should check the value of =r= at execution time and
+call the appropriate methods for each implementation.
+
+** Task 2 - Implement alternating bit, stop-and-wait protocol
+
+You will implement a stop-and-wait protocol (i.e. alternating bit
+protocol), which was referred to as rdt3.0 in the book and slides.
+
+Since you implemented the UDP client/server in the previous
+assignment, you already have experience with a similar unreliable
+channel interface (i.e. =udt_send()= and =udt_recv()= from rdt3.0).
+You must now implement the =rdt_send()= and =rdt_rcv()= interface that
+your client and server will use when running in RUDP mode.  In other
+words, your =rdt_= methods should provide the reliable service for the
+calling application and use the underlying UDP =sendto()= and
+=recvfrom()= methods to access the unreliable channel.
+
+There are a number of ways to implement this task correctly; however,
+there are a few key features and assumptions you can count on:
+
+ * You will need to introduce a new RUDP header that encapsulates the
+   application data sent in via =rdt_send()=.  This should include
+   fields to support sequence numbers, message type (ACK, NACK, etc.),
+   and potentially other fields like length.
+
+ * You will need a countdown timer.
+
+ * You may assume unidirectional data transfer (e.g. client ->
+   server).  You can make changes in your /netster/ application code
+   to ensure unidirectional flow (e.g. file transfer) and also to pace
+   how often data is sent into your RUDP interface for debugging
+   purposes.
+
+ * You may use both ACK and NACK control messages instead of duplicate
+   ACKs.
+
+ * You may assume only a single client RUDP session at a time.
+
+ * You may assume checksum error detection is handled by UDP.  Your
+   implementation should treat any potentially corrupt packets the
+   same as if they were simply lost.
+
+Your strategy for state management and handling control messages is up
+to you.  The rdt3.0 state machines from the book and slides may be
+guides but the expectation is that many different implementations
+should arise from this assignment.
+
+** Task 3 - Implement go-back-N protocol
+
+As we have learned, stop-and-wait will be horribly slow when
+transferring any significant amount of data, especially as latency in
+the network increases.  With a working Task 2 implementation, you
+should be able to observe this slow behavior on the testbed.
+
+You will now implement a go-back-N protocol to improve the performance
+of your /netster/ RUDP mode.  It is strongly recommended that you
+complete the stop-and-wait version before moving on to go-back-N!
+
+For go-back-N, you will need at a minimum:
+
+ * An allocated buffer that stores your client's window of data.  This
+   may be a fixed-size buffer with reasonable limits (e.g. 128
+   "slots").
+
+ * The ability to buffer and send data while keeping track of which
+   "slots" have been acknowledged by the receiver.
+
+ * A timer interrupt that indicates when it is time to /go-back-N/ and
+   retransmit.
+
+** Task 4 (538/599 sections) - Add simple congestion control
+
+You must implement a congestion control "window" that begins small and
+grows as data is successfully acknowledged. Your strategy for
+acknowledgements (including negative acknowledgement) is up to you.
+
+The goal is to prevent the go-back-N protocol from blasting the
+network with a full window of data at once, but start slow and then
+"probe" the network to determine how large the window may grow to
+avoid loss.
+
+NOTE: Unless you are feeling ambitious, the threading additions from
+the previous assignment can be removed for all tasks related to RUDP.
+Especially to start, a single threaded RUDP implementation will be
+much easier to reason about.
+
+** TO SUBMIT
+
+ * Well-documented and formatted code in =a3= files for Tasks 1, 2,
+   and 3 committed and pushed to your Net-Fall18 private repositories.
+   Follow the code submission guidelines.
+
+ * If graduate section, congestion control additions to Task 3.
