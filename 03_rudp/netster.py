@@ -20,7 +20,12 @@ def run_server(port, udp:bool=False, rudp:int=0, f:str=None):
     log.info("Hello, I am a server...")
     if(rudp != 0):
         server = RudpReceiver(port)
-        server.stopAndWaitRecv(f)
+        if(rudp == 1):
+            server.stopAndWaitRecv(f)
+        elif(rudp == 2):
+            server.goBackNRecv(f)
+        else:
+            log.warning("Unsupported Arg")
     else:   
         log.info("Nothing to do, exit...")
 
@@ -31,13 +36,16 @@ def run_client(host, port, udp:bool=False, rudp:int=0, f:str=None):
     log.info("Hello, I am a client...")
     if(rudp != 0):
         client = RudpSender(port, host)
-        client.sendFile(f)
+        if(rudp == 1):
+            client.stopAndWaitSend(f)
+        if(rudp == 2):
+            client.goBackNSend(f)
     else:
         log.info("Nothing to do, exit...")
 
 def main():
     parser = argparse.ArgumentParser(description="SICE Network netster")
-    parser.add_argument('-p', '--port', type=str, default=DEFAULT_PORT,
+    parser.add_argument('-p', '--port', type=int, default=DEFAULT_PORT,
                         help='listen on/connect to port <port> (default={}'
                         .format(DEFAULT_PORT))
     parser.add_argument('-i', '--iface', type=str, default='0.0.0.0',
