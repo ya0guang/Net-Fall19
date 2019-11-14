@@ -11,7 +11,8 @@ class RudpSender(Rudp):
     # timeout for sending packet(s) in second
     timeout = 0.3
     # for go-back-N algorithm, N = sendWindow
-    sendWindow = 1
+    sendWindow = 3
+    enableCongestionControl = True
     threshHold = None
 
     def __init__(self, port:int, host:str):
@@ -68,14 +69,17 @@ class RudpSender(Rudp):
             except socket.timeout:
                 print("Timeout")
                 self.resendPackets(sendList)
-                self.congestionControl(RudpSender.LossEvent.Timeout)
+                if RudpSender.enableCongestionControl:
+                    self.congestionControl(RudpSender.LossEvent.Timeout) 
             except RudpSender.DupAcks:
                 print("Dupacks")
                 ackList = []
                 self.resendPackets(sendList)
-                self.congestionControl(RudpSender.LossEvent.DupAcks)
+                if RudpSender.enableCongestionControl:
+                    self.congestionControl(RudpSender.LossEvent.DupAcks)
             else:
-                self.congestionControl(RudpSender.LossEvent.NoLoss)
+                if RudpSender.enableCongestionControl:
+                    self.congestionControl(RudpSender.LossEvent.NoLoss)
 
     def mark(self, packets: list, ack:int):
         """mark the status of an acked packet as False(unlive)
