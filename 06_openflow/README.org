@@ -1,0 +1,291 @@
+#+TITLE: Assignment 06: Openflow
+#+SUBTITLE: Fall 2018
+#+OPTIONS: toc:nil num:nil html-postamble:nil author:nil date:nil
+#+LATEX_HEADER: \usepackage{times}
+#+LATEX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \lstset{basicstyle=\small\ttfamily,columns=flexible,breaklines=true}
+#+LATEX_HEADER: \usepackage[a4paper,margin=1.0in]{geometry}
+#+LATEX_HEADER: \setlength{\parindent}{0cm}
+#+LATEX_HEADER: \usepackage{parskip}
+#+LATEX_HEADER: \usepackage{enumitem}
+#+LATEX_HEADER: \setitemize{noitemsep,topsep=2pt,parsep=2pt,partopsep=2pt}
+#+LATEX_HEADER: \usepackage{titling}
+#+LATEX_HEADER: \setlength{\droptitle}{-1in}
+#+LATEX_HEADER: \posttitle{\par\end{center}\vspace{-.5in}}
+
+* Instructions
+
+This assignment will let you gain experience with OpenFlow and an SDN controller
+software framework called [[https://osrg.github.io/ryu/][Ryu]].  Ryu is Python3-based but the amount of Python
+coding you will need to perform is minimal and the [[https://ryu.readthedocs.io/en/latest/][documentation]] is very
+complete.
+
+Additionally, you will make use of a software switch service called OpenVSwitch
+(OVS), which has OpenFlow support.  For the purposes of this assignment, OVS
+will turn your GENI router nodes into OpenFlow controlled switches/routers where
+the forwarding decisions are determined by a centralized controller.
+
+You will use and extend the same GENI testbed as in the last assignment so make
+sure it is up and running and you have acess to all the nodes!
+
+** Experiment Setup
+
+You will need to create a new "global" node using GENI that will act as the
+OpenFlow controller for all the SDN-enabled switches in your soon-to-be updated
+experiment.
+
+#+CAPTION: The GENI routing experiment testbed
+#+NAME:   fig:geni_testbed
+#+ATTR_LATEX: :width 6in
+#+ATTR_HTML: :width 1280px
+[[./images/controller_node.png]]
+
+Extend your existing GENI slice to include a /controller/ VM as shown in the
+screenshot above.  You can allocate this node at any available GENI Aggregate.
+
+ * Make sure your node has "Publically Routed IP" option selected.
+
+ * NOTE: Do not delete your existing resources!
+
+Make sure you can SSH to this new VM using its public IP address on SSH port 22.
+
+Once logged in, you will need to install the Ryu controller software:
+
+=sudo apt-get update=
+
+=sudo apt-get install python3-pip=
+
+=sudo pip3 install ryu=
+
+Once the install completed, you should be able to run:
+
+=sudo ryu-manager=
+
+from the command line.  Use =Ctrl-C= to terminate the program.  You will now
+move on to configure other parts of your GENI network before coming back to Ryu.
+
+** Router Node Setup
+
+Use the provided [[file:scripts/ovs_setup.sh][ovs_setup.sh]] script to setup OpenVSwitch on each of your router
+nodes in the topology. Copy the script or clone the Git repository on each of
+your router nodes and run it locally.
+
+Remember that each Site is numbered =1, 2, 3=.  The OVS setup script takes an
+integer argument that determines which site the script is being run on.  The
+idea is that each OVS router instance will register with a =datapath ID=
+matching the Site number.
+
+For example, on =router2=, you would run:
+
+=./ovs_setup.sh 2=
+
+This script will download and install a recent version of OpenVSwitch.  Then, it
+will create a new OVS "Bridge" called =br0= and attach the router dataplane
+interfaces.  When interfaces are added to a bridge they will be identified by a
+new OpenFlow port number.  In the script, we force this mapping to be
+sequential, so =eth1= becomes port 1, =eth2= becomes port 2, and so on.
+
+Additionally, the script assigns a unique =datapath ID= (DPID) to the bridge
+instance.  For instance, =br0= on =router1= will have a DPID set to 1, =br0= on
+=router2= will have a DPID set to 2, etc.  When you configure these OVS
+instances to contact your Ryu controller you will be able to identify each of
+these OVS instances by this unique DPID value.
+
+The purpose of the new =br0= with dataplane interfaces added is that now you
+have a single switch instance that allows you to control the forwarding
+decisions between any available ports, and over multiple protocol layers!  You
+can inspect the state of the bridge with some OVS utilities.
+
+View the state of the OVS bridge and the attached interfaces:
+
+=sudo ovs-vsctl show=
+
+View the current OpenFlow rules controlling the forwarding behavior of the
+bridge:
+
+=sudo ovs-ofctl dump-flows br0=
+
+You will note that there are no rules installed, thus no traffic can flow across
+this bridge.  The default behavior is to drop all packets arriving on any
+interface.
+
+** New Layer-3 Setup
+
+Because this assignment is interested in Layer-3 routing, you do need
+to configure IP addresses on each of your router nodes, just as in the
+previous assignment.  However, you will now simplify the setup and
+only assign a single IP address for each router, set on the newly
+created =br0= interface.  This router IP assignment is performed in
+the script from the previous step after OVS bridge creation.
+
+Now use the provided [[file:scripts/l3_setup.sh][l3_setup.sh]] script to configure global routes on
+each Site's *client* nodes.  Note that you will be configuring both
+client nodes behind each router for this assignment, not just a single
+node as in the previous assignment.
+
+The table below describes the new IP subnet information for each site.  The
+"private" subnet and NAT configuration from the previous assignmnet will be
+removed.  You will now be simply routing traffic using OpenFlow between three
+Sites with separate IP ranges.
+
+| Site or link | IP subnet    | Router IP |
+|--------------+--------------+-----------|
+| Site 1       | 10.10.1.0/24 | 10.10.1.1 |
+| Site 2       | 10.10.2.0/24 | 10.10.2.1 |
+| Site 3       | 10.10.3.0/24 | 10.10.3.1 |
+
+Again, note that even with IPs set on the core interface no traffic makes it
+through the OVS bridges.  There are no forwarding rules to forward traffic and
+packets are simply dropped.
+
+** Configure the Control Plane
+
+Now that the OVS instances are running and the core IP configuration is in
+place, it's time to establish the control plane that will allow you to configure
+the forwarding behavior of your network.
+
+On the /controller/ node (with public IP!) you configured earlier, run the
+provided [[file:controller.py][controller.py]] Ryu Application:
+
+=ryu-manager controller.py --ofp-tcp-listen-port 40000=
+
+You should run the controller on a non-standard port (e.g. 40000) as many GENI
+sites block the lower port ranges even on publically routable IPs.
+
+You should see some output from the controller once it starts.  You can also
+increase the verbosity of the controller by passing the =--verbose= argument.
+
+With the controller running, you can now set each OVS instance on your router
+nodes to point to the controller you just started.  On each router nodes, run
+the following:
+
+=sudo ovs-vsctrl set-controller br0 tcp:<your controller IP>:<your controller port>=
+
+As soon as a controller is set, the given OVS instance should connect to your
+/controller/ node and the =controller.py= application will output information
+about which DPID has connected.
+
+** Using the skeleton controller
+
+As a first step, take a look at [[file:controller.py][controller.py]] and become comfortable with the
+structure of the application.  Ryu is an event-driven framework, which means
+that when events over the control channels (between the controller and OVS
+instances) occur there is some piece of code that gets executed in the
+controller application.
+
+For example, when an OVS switch/bridge connects to the controller the
+=_state_change_handler()= method gets run and you see the register/unregister
+datapath messages get displayed on the console.  When the connected datapath
+begins feature exchange, the =switch_features_handlers()= is executed.  This
+latter handler is used to setup the initial flows and forwarding state of the
+connected datapath ID.  See the =self.add_routes()= method called at the end of
+the handler.
+
+Note that Ryu assigns handlers for events by "annotating" methods using the
+=@set_ev_cls()= annotation.  This is a Python mechanism for allowing methods to
+be executed in an event-driven manner.  You don't have to worry too much about
+how this works, just know that when events happen over the OpenFlow control
+channel a pre-defined method in your =controller.py= application is executed.
+
+One such important even is known as /Packet-in/.  This event happens when there
+is no matching rule on the controlled device (e.g. OVS bridge) and there is a
+default rule to forward any unmatched packet to the controller for processing.
+The skeleton =controller.py= application does just that.  See the
+=_packet_in_handler()= for more details.  With the packet from the device, you
+can parse out the protocol information and display it as a debugging message,
+which is exactly what the =controller.py= handler does.  This is a helpful
+debugging tool as you will be able to see any unmatched packet that arrives on a
+given interface and figure out how to handle it appropriately.
+
+The skeleton controller installs some initial example flows on DPID 1.  To
+inspect these rules, on =router1= run:
+
+=sudo ovs-ofctl dump-flows br0=
+
+You can keep running this command on any router node to verify that the rules
+you are developing in your controller app matching and installed as you expect.
+See the online documentation for =ovs-ofctl= and =ovs-vsctl= for more
+information.
+
+** Task 1: Manage routes using controller
+
+Your task is to extend the =controller.py= "MyController" application so that it
+installs rules on all of your router nodes to connect your layer-3 network.  The
+=add_routes()= method is where you will add the code to "program" your network.
+There is an example of how this might work for =node1-1= and =router1=.  See the
+controller skeleton code and comments for more information.
+
+One thing you will need to deal with is the mapping of IP addresses to MAC
+addresses.  This is normally handled by ARP but for simplicity you can work
+around having a full ARP implementation by maintaining a mapping of MAC
+addresses in your controller code.  The example in =add_flow()= shows how you
+can set the destination MAC field in the Ethernet header to the known MAC
+address of the destination hop.  To repeat this process, you will need to build
+a dictionary of all =br0= and /client/ interface MAC addresses to be connected
+in your topology.
+
+Another thing to be aware of are the OpenVSwitch "special" ports when running on
+a Linux host. For instance, using a port value of =OFPP_LOCAL= means you are
+matching on the "local" host network stack that OVS is running on.  You will see
+this used in the example flows created by the skeleton controller.
+Specifically, an output port action of =OFPP_LOCAL= for 10.10.1.1/32 on
+=router1= means that OVS will deliver a matching packet to host network stack on
+=router1=.  Because =router1= has an interface named =br0= with IP 10.10.1.1
+assigned, this rule makes sense and the Linux networking stack can parse an ICMP
+ECHO request and potentially generate a reply.  When =router1= generates a reply
+on that local interface, OVS will see this packet generated from =OFPP_LOCAL= as
+well, and your OpenFlow rules can match on this if necessary.
+
+Packets that are not destined for the local host, or arrive from other nodes,
+will of course match the ports attached to the OVS bridge, port 1 (eth1), port 2
+(eth2), etc!
+
+A successful assignment will have your controller insert the necessary flows
+mods (i.e. rules) at each router node to enable full connectivity between every
+client node in your network topology.  However, you do not need to enable
+bi-directional traffic to/from every router IP from other routers or from
+clients to/from routers.  The routers can be considered "transit" nodes.  What
+would you need to add to enable bi-directional traffic to flow between all
+router nodes IPs and any other node?
+
+** Bonus (10pts): Handle dynamic ARP
+
+Extend your controller to learn MAC addresses using ARP instead of maintaining a
+static mapping in your controller code.  There are ARP packet classes available
+in Ryu that can help construct and parse ARP packets.
+
+As an example of where this would be needed, think about =router2= trying to
+deliver a packet from =router1= to =node2-1=.  =router2= has a rule for
+10.10.2.21/32 out, say, port 1.  But, the =router2= controller does not know
+what the MAC address of the =node2-1= interface.  The packet still has a
+destination MAC of the =router2= =br0= interface since it was delivered from
+=router1=.  Thus, you need a way to learn "who-has" 10.10.2.21/32.  This may
+have been learned and stored from previous traffic from =node2-1=, but if the
+node has been silent (e.g. no traffic has been seen by the router), =router2=
+would need to generate an ARP Request and handle any ARP Replies that are
+returned.
+
+** Bonus (10pts): Add simple northbound API to change controller bahavior
+
+This assignment demonstrates how a centralized controller application can
+configure a number of programmable devices over a dedicated control plane.  What
+is missing is a way for the controller to respond to dynamic events from an
+external source.  Once the controller starts, the static configuration is
+applied and only a re-write of the controller logic would impact the
+configuration.
+
+A typical way for a controller to become dynamic is to introduce what is known
+as a "northbound API" that allows some set of configuration changes to be
+invoked from an external application.  This could take the form of a RESTful
+API, a configuration file watcher, or perhaps a socket listener with a simple
+protocol to direct the controller behavior.
+
+For this bonus task, implement a mechanism that allows your controller
+application switch between multiple states based on some external API event.  As
+in the previous assignment, a configuration change could involve directing
+traffic from one Site across a "long path" before reaching its destination.
+
+Other options could involve introducing a simple firewall mechanism using
+OpenFlow rules.  For example, if the destination port is X, do not forward but
+instead drop the packet!  There are many possible options to consider here so
+use your imagination.
