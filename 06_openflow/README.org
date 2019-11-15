@@ -289,3 +289,5 @@ Other options could involve introducing a simple firewall mechanism using
 OpenFlow rules.  For example, if the destination port is X, do not forward but
 instead drop the packet!  There are many possible options to consider here so
 use your imagination.
+
+* Write a report in pdf to show all your work including any necessary snapshot
